@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.env
+*.egg-info/
+catboost_info/
+backend/app/ml/ensemble/saved_models/
+
+# Frontend
+frontend/node_modules/
+frontend/.env.local
+frontend/dist/
+
+# Misc
+.DS_Store
+*.log
