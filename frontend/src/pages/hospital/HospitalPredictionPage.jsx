@@ -67,6 +67,22 @@ const DEFAULT_FEATURES = {
   restecg: 1, thalach: 150, exang: 0, oldpeak: 1.0, slope: 1, ca: 1, thal: 2
 };
 
+const SHAP_LABELS = {
+  oldpeak:  { name: "ST Depression (ECG)",     desc: "How much heart signal dips during exercise — higher = more stress" },
+  chol:     { name: "Cholesterol",              desc: "Fatty substance in blood — high levels clog arteries over time" },
+  age:      { name: "Age",                      desc: "CVD risk rises after 45 (men) and 55 (women)" },
+  trestbps: { name: "Resting Blood Pressure",   desc: "Blood pressure at rest — above 140 mmHg means hypertension" },
+  thalach:  { name: "Max Heart Rate Achieved",  desc: "Peak heart rate on stress test — lower max rate = poor cardiac fitness" },
+  thal:     { name: "Thalassemia Type",         desc: "Blood disorder type — reversible defect most linked to heart disease" },
+  ca:       { name: "Blocked Blood Vessels",    desc: "Number of vessels with blockages on scan (0–3) — more = higher risk" },
+  restecg:  { name: "Resting ECG Result",       desc: "Heart's electrical reading at rest — abnormal patterns signal issues" },
+  cp:       { name: "Chest Pain Type",          desc: "Type of chest discomfort — typical angina most tied to heart disease" },
+  sex:      { name: "Biological Sex",           desc: "Males have higher CVD risk at younger ages" },
+  exang:    { name: "Exercise Angina",          desc: "Chest pain during physical activity — signals reduced blood flow" },
+  fbs:      { name: "Fasting Blood Sugar",      desc: "Above 120 mg/dL is a diabetes marker and CVD risk factor" },
+  slope:    { name: "ECG Slope",                desc: "Shape of the ST segment at peak exercise on ECG" },
+};
+
 function FieldLabel({ label, tip, suggestion }) {
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
@@ -167,9 +183,12 @@ export default function HospitalPredictionPage() {
     enqueueSnackbar("Feedback submitted — model will retrain!", { variant: "success" });
   };
 
-  const shapeData = current
+const shapeData = current
     ? Object.entries(current.shap_values || {}).map(([k, v]) => ({
-        name: k, value: Math.abs(v), direction: v > 0 ? "risk" : "protective"
+        name: SHAP_LABELS[k]?.name || k,
+        desc: SHAP_LABELS[k]?.desc || "",
+        value: Math.abs(v),
+        direction: v > 0 ? "risk" : "protective"
       })).sort((a, b) => b.value - a.value).slice(0, 10)
     : [];
 
@@ -398,8 +417,14 @@ export default function HospitalPredictionPage() {
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={shapeData} layout="vertical" barSize={14}>
                             <XAxis type="number" tick={{ fill: COLORS.textMuted, fontSize: 10 }} />
-                            <YAxis dataKey="name" type="category" width={70} tick={{ fill: COLORS.textMuted, fontSize: 10 }} />
-                            <RTooltip />
+                            <YAxis dataKey="name" type="category" width={160} tick={{ fill: COLORS.textMuted, fontSize: 10 }} />
+                            <RTooltip
+                              formatter={(value, name, props) => [
+                                `Impact: ${value.toFixed(3)}`,
+                                props.payload?.desc || name
+                              ]}
+                              contentStyle={{ fontSize: 12 }}
+                            />
                             <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                               {shapeData.map((d, i) => <Cell key={i} fill={d.direction === "risk" ? COLORS.red : COLORS.green} />)}
                             </Bar>
