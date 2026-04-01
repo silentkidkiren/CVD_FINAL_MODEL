@@ -62,6 +62,11 @@ const CATEGORICAL_INFO = {
   fbs: { tip: "Is fasting blood sugar above 120 mg/dL? Elevated fasting glucose is a diabetes marker and CVD risk factor." },
 };
 
+const DEFAULT_FEATURES = {
+  age: 55, sex: 1, cp: 0, trestbps: 130, chol: 250, fbs: 0,
+  restecg: 1, thalach: 150, exang: 0, oldpeak: 1.0, slope: 1, ca: 1, thal: 2
+};
+
 function FieldLabel({ label, tip, suggestion }) {
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
@@ -107,10 +112,7 @@ export default function HospitalPredictionPage() {
   const [tab, setTab] = useState(0);
   const [feedback, setFeedback] = useState("");
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
-  const [features, setFeatures] = useState({
-    age: 55, sex: 1, cp: 0, trestbps: 130, chol: 250, fbs: 0,
-    restecg: 1, thalach: 150, exang: 0, oldpeak: 1.0, slope: 1, ca: 1, thal: 2
-  });
+  const [features, setFeatures] = useState(DEFAULT_FEATURES);
 
   useEffect(() => {
     if (hospital_id) {
@@ -119,8 +121,39 @@ export default function HospitalPredictionPage() {
     return () => dispatch(clearCurrent());
   }, [hospital_id]);
 
+  const handlePatientSelect = (patientId) => {
+    setSelectedPatient(patientId);
+    const patient = patients.find(p => p.id === patientId);
+    if (!patient) return;
+
+    // start from defaults, then override with what we know
+    const updated = { ...DEFAULT_FEATURES };
+
+    // age is always on the patient object
+    if (patient.age) updated.age = patient.age;
+
+    // gender stored as "Male" / "Female" string — map to 0/1
+    if (patient.gender === "Female") updated.sex = 0;
+    else if (patient.gender === "Male") updated.sex = 1;
+
+    // if medical_history has full clinical features, use them all
+    if (patient.medical_history && Object.keys(patient.medical_history).length > 0) {
+      Object.assign(updated, patient.medical_history);
+    }
+
+    setFeatures(updated);
+    // reset result panel when switching patients
+    dispatch(clearCurrent());
+    setFeedback("");
+    setFeedbackSubmitted(false);
+    setTab(0);
+  };
+
   const handlePredict = () => {
-    if (!selectedPatient) { enqueueSnackbar("Please select a patient first", { variant: "warning" }); return; }
+    if (!selectedPatient) {
+      enqueueSnackbar("Please select a patient first", { variant: "warning" });
+      return;
+    }
     const patient = patients.find(p => p.id === selectedPatient);
     dispatch(createPrediction({ patient_id: patient.patient_id, features }));
     setFeedbackSubmitted(false);
@@ -160,7 +193,11 @@ export default function HospitalPredictionPage() {
 
               <FormControl fullWidth sx={{ mb: 2 }}>
                 <InputLabel>Select Patient</InputLabel>
-                <Select value={selectedPatient} onChange={e => setSelectedPatient(e.target.value)} label="Select Patient">
+                <Select
+                  value={selectedPatient}
+                  onChange={e => handlePatientSelect(e.target.value)}
+                  label="Select Patient"
+                >
                   {patients.map(p => (
                     <MenuItem key={p.id} value={p.id}>{p.name} · {p.patient_id} · Age {p.age}</MenuItem>
                   ))}
@@ -179,9 +216,14 @@ export default function HospitalPredictionPage() {
                         {features[key]}{info.unit}
                       </Typography>
                     </Box>
-                    <Slider value={features[key]} min={info.min} max={info.max} step={info.step}
+                    <Slider
+                      value={features[key]}
+                      min={info.min}
+                      max={info.max}
+                      step={info.step}
                       onChange={(_, v) => setFeatures(f => ({ ...f, [key]: v }))}
-                      sx={{ color: COLORS.cyan }} />
+                      sx={{ color: COLORS.cyan }}
+                    />
                   </Grid>
                 ))}
 
@@ -250,9 +292,15 @@ export default function HospitalPredictionPage() {
 
               {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
 
-              <Button fullWidth variant="contained" size="large"
+              <Button
+                fullWidth
+                variant="contained"
+                size="large"
                 startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <Psychology />}
-                onClick={handlePredict} disabled={loading} sx={{ mt: 3 }}>
+                onClick={handlePredict}
+                disabled={loading}
+                sx={{ mt: 3 }}
+              >
                 {loading ? "Analyzing..." : "Run CVD Prediction"}
               </Button>
             </CardContent>
@@ -293,18 +341,22 @@ export default function HospitalPredictionPage() {
                       <Typography variant="caption" color="text.secondary">CVD Probability</Typography>
                     </Box>
                   </Box>
-                  <LinearProgress variant="determinate" value={current.cvd_probability * 100}
-                    sx={{ mt: 2, height: 8, borderRadius: 4,
+                  <LinearProgress
+                    variant="determinate"
+                    value={current.cvd_probability * 100}
+                    sx={{
+                      mt: 2, height: 8, borderRadius: 4,
                       bgcolor: alpha(riskConf?.color, 0.15),
                       "& .MuiLinearProgress-bar": { bgcolor: riskConf?.color, borderRadius: 4 }
-                    }} />
+                    }}
+                  />
                 </CardContent>
               </Card>
 
               <Card>
-               <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-                  <Tabs 
-                    value={tab} 
+                <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+                  <Tabs
+                    value={tab}
                     onChange={(_, v) => setTab(v)}
                     variant="scrollable"
                     scrollButtons="auto"
@@ -325,11 +377,15 @@ export default function HospitalPredictionPage() {
                             <Typography variant="caption" sx={{ fontFamily: "JetBrains Mono", fontWeight: 600, textTransform: "uppercase" }}>{model}</Typography>
                             <Typography variant="caption" sx={{ fontFamily: "JetBrains Mono", color: CHART_COLORS[i] }}>{(score * 100).toFixed(1)}%</Typography>
                           </Box>
-                          <LinearProgress variant="determinate" value={score * 100}
-                            sx={{ height: 8, borderRadius: 4,
+                          <LinearProgress
+                            variant="determinate"
+                            value={score * 100}
+                            sx={{
+                              height: 8, borderRadius: 4,
                               bgcolor: alpha(CHART_COLORS[i], 0.1),
                               "& .MuiLinearProgress-bar": { bgcolor: CHART_COLORS[i], borderRadius: 4 }
-                            }} />
+                            }}
+                          />
                         </Box>
                       ))}
                     </Box>
@@ -380,7 +436,8 @@ export default function HospitalPredictionPage() {
                           <Alert severity="info" sx={{ mb: 2 }}>
                             Review the AI prediction above. Approve if correct, or reject and add notes if the diagnosis needs correction. Your feedback retrains the model.
                           </Alert>
-                          <Box component="textarea"
+                          <Box
+                            component="textarea"
                             value={feedback}
                             onChange={e => setFeedback(e.target.value)}
                             placeholder="Add your clinical observations, corrections, or notes about this prediction..."
