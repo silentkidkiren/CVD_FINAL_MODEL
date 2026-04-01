@@ -302,12 +302,17 @@ export default function HospitalPredictionPage() {
               </Card>
 
               <Card>
-                <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-                  <Tabs value={tab} onChange={(_, v) => setTab(v)}>
-                    <Tab label="Ensemble Scores" />
-                    <Tab label="SHAP Analysis" />
-                    <Tab label="AI Explanation" />
-                    <Tab label="Doctor Feedback" />
+               <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+                  <Tabs 
+                    value={tab} 
+                    onChange={(_, v) => setTab(v)}
+                    variant="scrollable"
+                    scrollButtons="auto"
+                  >
+                    <Tab label="Scores" />
+                    <Tab label="SHAP" />
+                    <Tab label="Explanation" />
+                    <Tab label="Feedback" />
                   </Tabs>
                 </Box>
                 <CardContent>

@@ -13,9 +13,9 @@ FEATURE_DESCRIPTIONS = {
     "restecg": "Resting ECG Results",
     "thalach": "Maximum Heart Rate (bpm)",
     "exang": "Exercise-Induced Angina",
-    "oldpeak": "ST Depression",
+    "ST Depression": "ST Depression",
     "slope": "ST Segment Slope",
-    "ca": "Major Vessels Count",
+    "Major Vessels Count": "Major Vessels Count",
     "thal": "Thalassemia",
 }
 
